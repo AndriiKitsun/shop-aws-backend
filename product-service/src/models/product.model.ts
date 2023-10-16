@@ -5,3 +5,5 @@ export interface Product {
     price: number;
     count: number;
 }
+
+export type DynamoProduct = Omit<Product, 'count'>

@@ -1,19 +1,39 @@
 import type { ValidatedEventAPIGatewayProxyEvent } from '@libs/api-gateway';
 import { formatJSONResponse, errorResponse } from '@libs/api-gateway';
 import { middyfy } from '@libs/lambda';
-import { productListMock } from "@mocks/product-list.mock";
+import productService from "../../services/product.service";
+import stockService from "../../services/stock.service";
+import { Product } from "@models/product.model";
 
 const getProductById: ValidatedEventAPIGatewayProxyEvent<unknown> = async (event) => {
     console.log(`getProductById LOG: Input args`, event);
 
-    const productId = event.pathParameters?.productId;
-    const product = productListMock.find(product => product.id === productId);
+    try {
+        const productId = event.pathParameters?.productId;
+        const dynamoProduct = await productService.getProductById(productId);
 
-    if (!product) {
-        return formatJSONResponse(errorResponse("Product not found"), 404)
+        if (!dynamoProduct) {
+            return formatJSONResponse(errorResponse("Product not found"), 404);
+        }
+
+        const stock = await stockService.getStockByProductId(productId);
+
+        const product: Product = {
+            id: dynamoProduct.id,
+            title: dynamoProduct.title,
+            description: dynamoProduct.description,
+            price: dynamoProduct.price,
+            count: stock?.count ?? 0,
+        }
+
+        return formatJSONResponse(product);
+    } catch (err) {
+        console.error(`getProductById ERR:`, err);
+
+        const errorMessage = err?.errorMessage ?? err?.message ?? 'Internal server error';
+
+        return formatJSONResponse(errorResponse(errorMessage), err?.status ?? 500)
     }
-
-    return formatJSONResponse(product);
 };
 
 export const main = middyfy(getProductById);
