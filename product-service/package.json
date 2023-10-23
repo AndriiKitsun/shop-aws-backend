@@ -9,12 +9,16 @@
     "build": "sls package",
     "invoke": "sls invoke local --function",
     "deploy": "sls deploy",
-    "deploy:lambda": "sls deploy --function"
+    "deploy:lambda": "sls deploy --function",
+    "mock:product": "ts-node scripts/mock-product-table.ts",
+    "mock:stock": "ts-node scripts/mock-stock-table.ts"
   },
   "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.428.0",
+    "@aws-sdk/util-dynamodb": "^3.428.0",
     "@middy/core": "^3.4.0",
     "@middy/http-json-body-parser": "^3.4.0",
-    "nanoid": "^5.0.1"
+    "dotenv": "^16.3.1"
   },
   "devDependencies": {
     "@serverless/typescript": "^3.0.0",

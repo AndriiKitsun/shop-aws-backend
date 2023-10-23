@@ -19,7 +19,7 @@ export const productListMock: Product[] = [
         title: "Classic SD US National Park",
         description: "Small Pocket Knife Inspired by Our Nation's National Parks",
         price: 23.99,
-        count: 3,
+        count: null,
         id: "7567ec4b-b10c-48c5-9345-fc73c48a80a2",
     },
     {
