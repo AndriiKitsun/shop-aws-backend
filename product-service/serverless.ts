@@ -1,5 +1,5 @@
 import type { AWS } from '@serverless/typescript';
-import { createProduct, getProductList, getProductById } from "@functions/index";
+import { createProduct, getProductList, getProductById, catalogBatchProcess } from "@functions/index";
 import { configDotenv } from "dotenv";
 
 configDotenv();
@@ -20,6 +20,9 @@ const serverlessConfiguration: AWS = {
         environment: {
             DYNAMODB_PRODUCT_TABLE_NAME: process.env.DYNAMODB_PRODUCT_TABLE_NAME,
             DYNAMODB_STOCK_TABLE_NAME: process.env.DYNAMODB_STOCK_TABLE_NAME,
+            PRODUCT_SNS_TOPIC_ARN: {
+                "Ref": "createProductTopic"
+            }
         },
         iamRoleStatements: [
             {
@@ -28,15 +31,34 @@ const serverlessConfiguration: AWS = {
                     "dynamodb:*"
                 ],
                 Resource: "*"
+            },
+            {
+                Effect: "Allow",
+                Action: [
+                    "SQS:ReceiveMessage"
+                ],
+                Resource: {
+                    "Fn::GetAtt": ["catalogItemsQueue", "Arn"]
+                }
+            },
+            {
+                Effect: "Allow",
+                Action: [
+                    "sns:*"
+                ],
+                Resource: {
+                    "Ref": "createProductTopic"
+                }
             }
         ]
     },
     functions: {
         createProduct,
         getProductById,
-        getProductList
+        getProductList,
+        catalogBatchProcess
     },
-    package: {individually: true},
+    package: { individually: true },
     custom: {
         esbuild: {
             bundle: true,
@@ -44,7 +66,7 @@ const serverlessConfiguration: AWS = {
             sourcemap: false,
             exclude: ['aws-sdk'],
             target: 'node18',
-            define: {'require.resolve': undefined},
+            define: { 'require.resolve': undefined },
             platform: 'node',
             concurrency: 10,
         },
@@ -95,6 +117,45 @@ const serverlessConfiguration: AWS = {
                     }
                 }
             },
+            catalogItemsQueue: {
+                Type: "AWS::SQS::Queue",
+                Properties: {
+                    QueueName: process.env.PRODUCT_SQS_NAME
+                }
+            },
+            createProductTopic: {
+                Type: "AWS::SNS::Topic",
+                Properties: {
+                    DisplayName: process.env.PRODUCT_SNS_TOPIC_DISPLAY_NAME,
+                    TopicName: process.env.PRODUCT_SNS_TOPIC_NAME
+                }
+            },
+            createProductEmailSubscription: {
+                Type: "AWS::SNS::Subscription",
+                Properties: {
+                    Protocol: "email",
+                    TopicArn: {
+                        "Ref": "createProductTopic"
+                    },
+                    Endpoint: process.env.PRODUCT_SNS_SUBSCRIPTION_ENDPOINT,
+                    FilterPolicy: {
+                        "user-group": ["managers"]
+                    }
+                }
+            },
+            createUserEmailSubscription: {
+                Type: "AWS::SNS::Subscription",
+                Properties: {
+                    Protocol: "email",
+                    TopicArn: {
+                        "Ref": "createProductTopic"
+                    },
+                    Endpoint: process.env.PRODUCT_SNS_SUBSCRIPTION_USER_ENDPOINT,
+                    FilterPolicy: {
+                        "user-group": ["users"]
+                    }
+                }
+            }
         }
     }
 };

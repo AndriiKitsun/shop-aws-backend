@@ -1,3 +1,3 @@
 export * from "./product.service";
 export * from "./stock.service";
-export * from "./api.service-base";
+export * from "./product-sns.service";
