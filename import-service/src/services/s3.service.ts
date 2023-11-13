@@ -29,7 +29,11 @@ export class S3Service {
         const file = await this.getRawFile(filePath);
 
         return file
-            .pipe(csv());
+            .pipe(
+                csv({
+                    mapHeaders: ({ header }) => header.toLowerCase().trim()
+                })
+            );
     }
 
     public async moveFile(filePath: string, destinationPath: string): Promise<void> {

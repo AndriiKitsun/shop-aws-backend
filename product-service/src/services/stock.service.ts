@@ -1,6 +1,6 @@
 import { ApiServiceBase } from "./api.service-base";
-import { ScanCommand, AttributeValue, GetItemCommand } from "@aws-sdk/client-dynamodb";
-import { unmarshall } from "@aws-sdk/util-dynamodb";
+import { ScanCommand, AttributeValue, GetItemCommand, PutItemCommand } from "@aws-sdk/client-dynamodb";
+import { unmarshall, marshall } from "@aws-sdk/util-dynamodb";
 import { DynamoStock, DynamoNormalizedStock } from "@models/stock.model";
 
 export class StockService extends ApiServiceBase {
@@ -25,7 +25,7 @@ export class StockService extends ApiServiceBase {
         const command = new GetItemCommand({
             TableName: this.tableName,
             Key: {
-                product_id: {S: productId}
+                product_id: { S: productId }
             }
         });
 
@@ -36,6 +36,17 @@ export class StockService extends ApiServiceBase {
         }
 
         return unmarshall(response.Item) as DynamoStock;
+    }
+
+    public async createStockItem(stockDto: Partial<DynamoStock>): Promise<void> {
+        const command = new PutItemCommand({
+            TableName: this.tableName,
+            Item: marshall(stockDto, {
+                removeUndefinedValues: true,
+            })
+        });
+
+        await this.client.send(command);
     }
 }
 

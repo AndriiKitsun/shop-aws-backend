@@ -3,6 +3,7 @@ import middy from "@middy/core";
 import { S3Event } from "aws-lambda/trigger/s3";
 import s3Service from "@services/s3.service";
 import { Transform } from "stream";
+import productSqsService from "@services/product-sqs.service";
 
 const importFileParser = async (event: S3Event) => {
     console.log(`importFileParser LOG: Input args:`, event);
@@ -14,7 +15,13 @@ const importFileParser = async (event: S3Event) => {
             const filePath = record.s3.object.key;
             const file = await s3Service.getCsvFile(filePath);
 
-            handleCsvFile(filePath, file);
+            console.log(`importFileParser LOG: Sending to SQS:`, filePath);
+            const parsingResult = await handleCsvFile(file);
+            console.log(`importFileParser LOG: Sent to SQS`, parsingResult);
+
+            console.log(`importFileParser LOG: Moving to 'parsed' directory`, filePath);
+            await moveParsedFile(filePath)
+            console.log(`importFileParser LOG: Moved to 'parsed' directory`);
         }
 
         return formatJSONResponse();
@@ -28,24 +35,31 @@ const importFileParser = async (event: S3Event) => {
 }
 
 
-function handleCsvFile(filePath: string, fileStream: Transform): void {
-    fileStream
-        .on('data', data => {
-            console.log(`importFileParser LOG: ${filePath} CSV file part data:`, data);
-        })
-        .on('error', error => {
-            console.error(`importFileParser ERR: ${filePath} Error during parsing CSV:`, error);
-        })
-        .on('end', () => {
-            console.log(`importFileParser LOG: ${filePath} CSV parsing finished`);
-            moveParsedFile(filePath)
-        })
+function handleCsvFile(fileStream: Transform): Promise<boolean> {
+    return new Promise((resolve, reject) => {
+        let dataChunks: Record<string, string>[] = [];
+
+        fileStream
+            .on('data', data => {
+                dataChunks.push(data);
+            })
+            .on('error', error => {
+                reject(error);
+            })
+            .on('end', async () => {
+                for (const data of dataChunks) {
+                    await productSqsService.sendMessage(data);
+                }
+
+                resolve(true);
+            });
+    });
 }
 
 async function moveParsedFile(filePath: string): Promise<void> {
-    const destinationPath = filePath.replace('uploaded', 'parsed')
+    const destinationPath = filePath.replace('uploaded', 'parsed');
 
-    await s3Service.moveFile(filePath, destinationPath)
+    await s3Service.moveFile(filePath, destinationPath);
 }
 
 export const main = middy(importFileParser);

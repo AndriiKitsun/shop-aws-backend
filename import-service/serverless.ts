@@ -19,7 +19,8 @@ const serverlessConfiguration: AWS = {
         },
         environment: {
             PROVIDER_REGION: process.env.PROVIDER_REGION,
-            IMPORT_FILE_STORAGE_NAME: process.env.IMPORT_FILE_STORAGE_NAME
+            IMPORT_FILE_STORAGE_NAME: process.env.IMPORT_FILE_STORAGE_NAME,
+            PRODUCT_SQS_URL: process.env.PRODUCT_SQS_URL
         },
         iamRoleStatements: [
             {
@@ -28,7 +29,8 @@ const serverlessConfiguration: AWS = {
                     "s3:GetObject",
                     "s3:GetObjectTagging",
                     "s3:PutObject",
-                    "s3:PutObjectTagging"
+                    "s3:PutObjectTagging",
+                    "s3:DeleteObject"
                 ],
                 Resource: [
                     `arn:aws:s3:::${process.env.IMPORT_FILE_STORAGE_NAME}/*`
@@ -41,6 +43,15 @@ const serverlessConfiguration: AWS = {
                 ],
                 Resource: [
                     `arn:aws:s3:::${process.env.IMPORT_FILE_STORAGE_NAME}`
+                ]
+            },
+            {
+                Effect: "Allow",
+                Action: [
+                    "sqs:*"
+                ],
+                Resource: [
+                    process.env.PRODUCT_SQS_ARN
                 ]
             }
         ]
