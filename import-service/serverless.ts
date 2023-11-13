@@ -20,7 +20,8 @@ const serverlessConfiguration: AWS = {
         environment: {
             PROVIDER_REGION: process.env.PROVIDER_REGION,
             IMPORT_FILE_STORAGE_NAME: process.env.IMPORT_FILE_STORAGE_NAME,
-            PRODUCT_SQS_URL: process.env.PRODUCT_SQS_URL
+            PRODUCT_SQS_URL: process.env.PRODUCT_SQS_URL,
+            BASIC_AUTHORIZER_LAMBDA_ARN: process.env.BASIC_AUTHORIZER_LAMBDA_ARN
         },
         iamRoleStatements: [
             {
@@ -81,7 +82,18 @@ const serverlessConfiguration: AWS = {
                 Properties: {
                     BucketName: process.env.IMPORT_FILE_STORAGE_NAME
                 }
-            }
+            },
+            gatewayResponse4XX: {
+                Type: "AWS::ApiGateway::GatewayResponse",
+                Properties: {
+                    ResponseType: "DEFAULT_4XX",
+                    ResponseParameters: {
+                        "gatewayresponse.header.Access-Control-Allow-Origin": "'*'",
+                        "gatewayresponse.header.Access-Control-Allow-Headers": "'*'",
+                    },
+                    RestApiId: { Ref: "ApiGatewayRestApi" },
+                },
+            },
         }
     }
 };
