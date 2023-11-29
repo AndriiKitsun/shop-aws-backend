@@ -15,6 +15,12 @@ export default {
                             name: true
                         }
                     }
+                },
+                authorizer: {
+                    name: 'import-authorizer',
+                    arn: process.env.BASIC_AUTHORIZER_LAMBDA_ARN,
+                    identitySource: 'method.request.header.Authorization',
+                    type: 'token'
                 }
             },
         },
